@@ -1,0 +1,357 @@
+= Bitbar/SwiftBarをLinuxでも使いたい
+Kenichiro Matohara(matoken) <maroken@kagolug.org> CC BY-NC-SA
+:revnumber: 1.0
+:revdate: 2021-01-01(Sat)
+:revremark: 東海道らぐ 01月のオフな集まり「{doctitle}」
+:homepage: https://matoken.org/
+:imagesdir: resources
+:data-uri:
+:figure-caption!:
+:backend: revealjs
+:revealjs_theme: serif
+:customcss: resources/my-css.css
+:revealjs_slideNumber: c/t
+:title-slide-transition: none
+:icons: font
+:revealjs_hash: true
+:revealjs_center: true
+:revealjs_autoPlayMedia: true
+:revealjs_transition: false  
+:revealjs_transitionSpeed: fast
+
+== !
+
+image::moo.jpg[]
+
+link:https://matoken.org/blog/2019/04/02/april-fools-cow-from-apt-apt-get/[`$ apt --color moo moo 2>/dev/null | sed -e 's/Have you mooed today?/Happy MOO Year!/'`]
+
+== link:https://matoken.org[Kenichiro Matohara(matoken) https://matoken.org]
+
+image::map.jpg[background, size=cover]
+
+* 南隅から参加(鹿児島の右下)
+* 好きなLinuxディストリビューションはDebian
+* お仕事募集 mailto:work@matohara.org
+
+== 最近の発表
+
+* 「link:https://www.edocr.com/v/3al6wy4p[誰でもファイルアップロード]」 link:https://kagolug.connpass.com/event/197081/[鹿児島Linux勉強会 2020.12(オンライン開催)] 2020-12-26
+* 「link:https://www.edocr.com/v/47o8nae4[VeraCryptをzuluCryptで]」 link:https://koedolug.connpass.com/event/198954/[小江戸らぐ 1月のオフな集まり(第222回)] 2021-01-09
+
+== 鹿児島らぐ
+
+* 次回 2021-01-31(sun)
+** link:https://kagolug.connpass.com/event/200913/[鹿児島Linux勉強会 2021.01(オンライン開催)]
+* オープンソースカンファレンス2021 Springにも参加予定
+
+== BitBar/SwiftBar
+
+* PodcastのRebuild.fm 292回でBitBar, SwiftBar というツールバーに任意のコマンドの結果を表示できるツールを知る
+** link:https://rebuild.fm/292/[Rebuild: 292: Two Chickens, One Stone (hak)]
+** link:https://github.com/matryer/bitbar[GitHub - matryer/bitbar: Put the output from any script or program in your Mac OS X Menu Bar]
+** link:https://swiftbar.app/[SwiftBar]
+* macOS用
+* Linuxで動くものがないか探してみる
+https://nitter.net/matoken1/status/1344632867100364801
+
+== BitBar/SwiftBar Alternative
+
+* link:https://github.com/p-e-w/argos[GitHub - p-e-w/argos: Create GNOME Shell extensions in seconds]
+* link:https://github.com/lipido/kargos[GitHub - lipido/kargos: KDE Plasma port of GNOME Argos and OSX BitBar]
+* link:https://github.com/ssimono/margos[GitHub - ssimono/margos: Create Mate applets from your script output]
+
+現環境はAwesome wmなのでどれも動かなさそう（◞‸◟）
+
+== Margosを試す
+
+* とりあえず一番導入が楽そうなMateを導入してMargosを試す
+* MargosにはMate 1.18以上，gtk-3，Python 3.6以上，pipが必要
+
+== margos導入
+
+[source,shell]
+----
+$ sudo pip3 install -U margos <1>
+$ sudo margos install <2>
+$ killall mate-panel <3>
+----
+
+<1> pipコマンドでmargosを導入
+<2> デスクトップ環境で利用できるようにする
+<3> mate-panelを再起動する
+
+== margosアプレット登録
+
+* パネルにアプレットを登録して任意のコマンドを登録
+* パネルで右クリックしてアプレットの追加
+* アプレット内の「コマンド」を選択して追加
+
+image:margos_addpanel.jpg[width=40%]
+
+* 登録されたmargosは既定値で時計
+* 右クリックして「Prefarence」で設定画面に
+* 「Command」部分に任意のコマンドを，「Interval」にコマンドを実行する間隔の秒数を指定
+
+image:margos_setting.jpg[]
+
+link:https://github.com/fcambus/ansiweather[ansiweather]というコマンドで天気を表示
+
+image:margos_ansiwather.jpg[]
+
+`ansiweather -l chiyoda,JP -u metric -f 1 -a false -s true`
+
+== いくつかの問題
+
+=== エスケープシーケンスがそのまま出力される
+
+* colorなどは使わないようにしましょう．
+
+image:margos_esc.jpg[]
+
+`wego -d 1 -f emoji | head -4 | tail -1`
+
+=== 日本語や記号の問題
+
+* `⚡21時/84%` と表示したいところの `時` 部分が `?` になり， `%` が消えてしまった
+* 絵文字がOKで日本語がNGなパターンは初めて見た気がする
+
+image:margos_kanji_par.jpg[]
+
+----
+echo -n ⚡$((`date +%H`-1))時/; \
+curl -s https://www.kyuden.co.jp/td_power_usages/csv/juyo-hourly-`date +%Y%m%d`.csv | \
+head -38 | tail -24 | grep ,$(( `date +%H` -1 )):00 | cut -z -d, -f5;echo %
+----
+
+NOTE: タイミングによりうまく動かないのに気づいた><
+
+=== パイプ等を使うと動かない
+
+* `|` でつないだりするとうまく動かない
+* `sh -c "command1 | command2"` のようにsh経由で動かすとOK
+* ファイルに書き出してそれを指定したほうがいい?
+
+== Margosまとめ
+
+* MargosはBitBarに比べると機能が少ない
+* watchコマンドをMateパネルに置く感じ
+
+== Argosを試す
+
+* Margosの機能が少ないのでGnome Shell環境を用意してArgosを試す
+* Gnome shellの拡張機能として提供されている
+* BitBarコンパチ!
+
+** link:https://github.com/p-e-w/argos[p-e-w/argos: Create GNOME Shell extensions in seconds]
+
+== Argos導入
+
+* link:https://extensions.gnome.org/extension/1176/argos/[Argos - GNOME Shell 拡張機能]
+* ブラウザから導入もしくは手動でダウンロードして展開
+* ダウンロード時はGnome shellのバージョンを求められる
+
+.Gnome Shellバージョン確認
+[source,shell]
+----
+$ gnome-shell --version
+GNOME Shell 3.38.3
+----
+
+.手動での導入
+[source,shell]
+----
+$ mkdir -p ~/.local/share/gnome-shell/extensions
+$ unzip ./argospew.worldwidemann.com.v3.shell-extension.zip \
+-d ~/.local/share/gnome-shell/extensions/argos@pew.worldwidemann.com/
+----
+
+**Alt+F2 r↲** でGnome Shellを再起動して反映
+
+== Gnome Shellが新しいとうまく動かない
+
+* ステータスバーには現れるがクリックしてもウィンドウが開かない
+* Gnome Shellが新しいとこうなるらしい(3.36+?今回は3.38.3)
+** link:https://github.com/p-e-w/argos/issues/120[Argos menus won't open on Ubuntu 20.04 - Is it a known issue? · Issue #120 · p-e-w/argos · GitHub]
+* Gitリポジトリのmasterと以下のPRのpatchを利用して動作
+** link:https://github.com/p-e-w/argos/pull/111[Use registerClass to make plugin compatible with gnome 3.36. by rammie · Pull Request #111 · p-e-w/argos · GitHub]
+
+== 導入し直し
+
+* Gnome Shell 3.36+の場合のみ
+
+=== 旧バージョンを削除
+[source,shell]
+----
+$ gnome-extensions disable argos@pew.worldwidemann.com <1>
+$ gnome-extensions uninstall argos@pew.worldwidemann.com <2>
+----
+
+<1> 無効化
+<2> アンインストール
+
+=== GitのmasterとPR適用
+
+[source,shell]
+----
+$ git clone github.com/p-e-w/argos <1>
+$ cd argos
+$ cp -p ./argos@pew.worldwidemann.com \
+~/.local/share/gnome-shell/extensions/ <2>
+$ wget https://raw.githubusercontent.com/p-e-w/argos/c4663d9d3e29ef33b7e9123ef0c095811c91cf5b/argos%40pew.worldwidemann.com/menuitem.js \
+-O ~/.local/share/gnome-shell/extensions/argos@pew.worldwidemann.com/menuitem.js <3>
+----
+
+<1> リポジトリclone
+<2> 拡張機能コピー
+<3> Gnome Shell 3.36+向けの修正を適用
+
+**Alt+F2 r↲** でGnome Shellを再起動して反映
+
+== Argosデフォルトプラグイン確認
+
+* ステータスバーに**Argos**が現れる
+* クリックでウィンドウが表示される
+* 最下部の `argos.sh` をクリックするとテキストエディタで開かれる
+
+image:argos-argos.jpg[]
+
+=== Argos.sh
+
+[source,shell]
+----
+#!/usr/bin/env bash
+
+URL="github.com/p-e-w/argos"
+DIR=$(dirname "$0")
+
+echo "Argos"
+echo "---"
+echo "$URL | iconName=help-faq-symbolic href='https://$URL'"
+echo "$DIR | iconName=folder-symbolic href='file://$DIR'"
+
+----
+
+== Argos Plugin
+
+* `~/.config/argos/` に**実行可能**プラグラムやスクリプトを置くと即実行される
+* STDOUT出力結果1行目がバーに表示され，`---` の後がウィンドウ内に表示される
+* インターバルはファイル名で制御  +
+  `hoge.3s+.sh` #3秒毎に実行  +
+  `fuga.10m+.py` #10分毎に実行
+* 色を付けたりアイコンを設定したり……
+
+== wegoで天気表示
+
+天気をバーに表示してクリックすると2日分の天気予報を表示(罫線が崩れている)
+
+image:argos-wego.jpg[]
+
+=== !
+
+.~/.config/argos/wego.1h+.sh
+[source,shell]
+----
+#!/bin/bash
+
+STR=`wego -d 2 -f emoji`
+echo "`echo "${STR}" | head -4 | tail -1`"
+echo "---"
+echo "${STR}" | awk 1 ORS="\\\\n"
+echo " | font=monospace"
+----
+
+== CPUの温度とtop表示
+
+1分毎にCPUの温度をバーに表示して，クリックするとtopコマンドを表示
+
+image:argos-cputhermal.jpg[]
+
+=== !
+
+.~/.config/argos/cputhermal.1m+.sh
+[source,shell]
+----
+#!/bin/bash
+
+THERMAL=`awk '{print $2}' /proc/acpi/ibm/thermal`
+COLOR="white"
+
+if (( THERMAL >= 80 )) ; then
+        COLOR="red"
+fi
+
+#echo "🌡 ${THERMAL}℃  | color=${COLOR}"
+echo "<span color='${COLOR}' weight='normal'><tt>🌡${THERMAL}℃ </tt></span>"
+echo "---"
+if [ "${ARGOS_MENU_OPEN}" == "true" ]; then
+        TOP_OUTPUT=$(top -b -n 1 | head -n 20 | awk 1 ORS="\\\\n")
+        echo "${TOP_OUTPUT} | font=monospace bash=top"
+else
+        echo "Loading..."
+fi
+----
+
+※色が変更できない?
+
+== BitBar Plugin利用
+
+* BitBarと互換性があるのでプラグインが流用できる
+* scriptによりAPI keyや座標を記述したりは必要
+* BitBarはmacOS向けなのでシステム周りは動かなかったりPATHが違ったりも
+** link:https://github.com/matryer/bitbar-plugins[GitHub - matryer/bitbar-plugins: Plugin repository for BitBar]
+
+=== HackserNewsを表示するプラグイン利用例
+
+[source,shell]
+----
+$ git clone https://github.com/matryer/bitbar-plugins
+$ cd bitbar-plugins
+$ ln -s `pwd`/Web/HackerNews/hacker_news.1m.rb ~/.config/argos/
+----
+
+=== !
+
+image:argos-hackernews.jpg[]
+
+== Kargos
+
+link:https://github.com/lipido/kargos[GitHub - lipido/kargos: KDE Plasma port of GNOME Argos and OSX BitBar]
+
+* KDE Plasma向け
+* 動作未確認
+
+.ちょい古そう
+____
+A Plasma port of Argos and BitBar plugins to fast create custom plasmoids.
+
+Note: This is an alpha project. By now, it only was tested on Kubuntu 16.04 LTS.
+____
+
+== その他
+
+* link:https://blog.goo.ne.jp/sabotenboy_london/e/8628856ec214d667cb90c7d421ac482e[マジョカアイリスをモニタ上に設置]
+* 小型ディスプレイ
+* スマートフォン
+
+=== 小さなスマホを外部ディスプレイに
+
+
+[.right]
+.link:https://www.deskreen.com/[Deskreen]でlink:https://github.com/isaki68k/sayaka[sayaka]でTweet流しているウィンドウを共有してRakuten miniで表示
+image::deskreen-rmini.jpg[width=60%]
+
+== まとめ
+
+* ArgosおすすめGnome Shell環境の方はぜひ
+** Shell Scriptなどをちょっと書くだけでステータスバーにいろいろな情報を表示来て便利
+* バーが表示される範囲が限られる -> 大きなモニタほしい
+* awesome wmでも動く汎用的なツールほしい
+
+== 奥付
+
+* 発表
+** link:https://tokaidolug.connpass.com/event/198980/[東海道らぐ　あひる焼きさんのライトニングトークダービー！] 2021-01-23(sat)
+* 発表者
+** link:https://matoken.org/[Kenichiro Matohara(matoken)]
+* ライセンス
+** CC BY-NC-SA 4.0
