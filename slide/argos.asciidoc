@@ -193,9 +193,9 @@ $ gnome-extensions uninstall argos@pew.worldwidemann.com <2>
 
 [source,shell]
 ----
-$ git clone github.com/p-e-w/argos <1>
+$ git clone https://github.com/p-e-w/argos <1>
 $ cd argos
-$ cp -p ./argos@pew.worldwidemann.com \
+$ cp -r ./argos@pew.worldwidemann.com \
 ~/.local/share/gnome-shell/extensions/ <2>
 $ wget https://raw.githubusercontent.com/p-e-w/argos/c4663d9d3e29ef33b7e9123ef0c095811c91cf5b/argos%40pew.worldwidemann.com/menuitem.js \
 -O ~/.local/share/gnome-shell/extensions/argos@pew.worldwidemann.com/menuitem.js <3>
